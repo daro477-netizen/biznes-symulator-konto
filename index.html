@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Biznes Symulator — konto</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Same palette as the app's "Tycoon" theme */
+  :root {
+    --bg: #FFF4E0; --card: #FFFFFF; --ink: #2B2118; --muted: #6B5B4B;
+    --teal: #0E5E5A; --on-teal: #FFF4E0; --gold: #F5B82E; --loss: #B3261E;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #1A140F; --card: #2A2119; --ink: #0B0806; --muted: #C9B8A3; --loss: #FFB4AB; }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px;
+    background: var(--bg); color: var(--ink); font-family: Nunito, system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) { body { color: #FFF4E0; } }
+  .card {
+    width: 100%; max-width: 420px; background: var(--card); border: 3px solid var(--ink);
+    border-radius: 24px; box-shadow: 0 6px 0 var(--ink); overflow: hidden;
+  }
+  .hero { background: var(--teal); color: var(--on-teal); padding: 28px 24px 22px; text-align: center; border-bottom: 3px solid var(--ink); }
+  .badge {
+    width: 72px; height: 72px; margin: 0 auto 12px; border-radius: 50%; background: var(--gold);
+    border: 3px solid var(--ink); display: grid; place-items: center; font-size: 36px; line-height: 1;
+  }
+  .error .badge { background: #F2B8B5; }
+  h1 { font-family: "Baloo 2", system-ui, sans-serif; font-weight: 800; font-size: 28px; line-height: 1.15; margin: 0; }
+  .body { padding: 22px 24px 26px; }
+  p { margin: 0 0 12px; font-size: 16px; line-height: 1.5; }
+  .muted { color: var(--muted); font-size: 14px; }
+  ol { margin: 0 0 12px; padding-left: 22px; line-height: 1.6; }
+  b { font-weight: 700; }
+  .detail { color: var(--loss); font-size: 14px; }
+</style>
+</head>
+<body>
+<main class="card" id="card">
+  <div class="hero">
+    <div class="badge" id="badge" aria-hidden="true">✓</div>
+    <h1 id="title">E-mail potwierdzony</h1>
+  </div>
+  <div class="body" id="body">
+    <p>Twoje konto w <b>Biznes Symulatorze</b> jest zabezpieczone.</p>
+    <ol>
+      <li>Wróć do aplikacji.</li>
+      <li>W karcie <b>Konto</b> stuknij <b>„Sprawdź potwierdzenie”</b>.</li>
+      <li>Ustaw hasło — zalogujesz się nim na innym telefonie.</li>
+    </ol>
+    <p class="muted">Tę kartę możesz już zamknąć.</p>
+  </div>
+</main>
+<script>
+  // Supabase sends the outcome in the URL: #access_token=… on success, #error=…&error_description=… on failure.
+  var params = new URLSearchParams((location.hash || "").replace(/^#/, "") + "&" + location.search.replace(/^\?/, ""));
+  // Tokens never stay in the address bar or the history; this page doesn't use them
+  if (location.hash || location.search) history.replaceState(null, "", location.pathname);
+
+  var error = params.get("error") || params.get("error_code");
+  if (error) {
+    var code = params.get("error_code") || error;
+    var expired = /expired|otp/i.test(code + " " + (params.get("error_description") || ""));
+    document.getElementById("card").classList.add("error");
+    document.getElementById("badge").textContent = "!";
+    document.getElementById("title").textContent = expired ? "Link wygasł" : "Nie udało się potwierdzić";
+    var body = document.getElementById("body");
+    body.innerHTML =
+      "<p>" + (expired
+        ? "Ten link jest już nieważny — wygasł albo został użyty."
+        : "Serwer nie przyjął tego linku.") + "</p>" +
+      "<ol><li>Wróć do aplikacji.</li><li>W karcie <b>Konto</b> stuknij <b>„Wyślij link ponownie”</b>.</li>" +
+      "<li>Otwórz najnowszą wiadomość.</li></ol>";
+    var description = params.get("error_description");
+    if (description) {
+      var p = document.createElement("p");
+      p.className = "detail";
+      p.textContent = description.replace(/\+/g, " ");
+      body.appendChild(p);
+    }
+  } else if (params.get("message")) {
+    // Secure e-mail change: the first of two links was accepted, the other address still has to confirm
+    document.getElementById("title").textContent = "Pierwszy link przyjęty";
+    document.getElementById("body").innerHTML =
+      "<p>Potwierdź jeszcze link wysłany na drugi adres e-mail, a potem wróć do aplikacji i stuknij <b>„Sprawdź potwierdzenie”</b>.</p>";
+  }
+</script>
+</body>
+</html>
